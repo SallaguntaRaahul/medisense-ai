@@ -11,8 +11,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Bake the embedding model and the triage classifier's base model into the
 # image so the first request doesn't pay a cold-start download against
-# Hugging Face Hub.
-RUN python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='BAAI/bge-small-en-v1.5')"
+# Hugging Face Hub. fastembed's cache_dir is explicit and outside /tmp --
+# some platforms (Render included) mount a fresh /tmp at container runtime,
+# which would otherwise hide whatever got cached here during the build.
+RUN python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='BAAI/bge-small-en-v1.5', cache_dir='/app/.fastembed_cache')"
 RUN python -c "\
 from transformers import AutoTokenizer, AutoModelForSequenceClassification; \
 AutoTokenizer.from_pretrained('distilbert-base-uncased'); \

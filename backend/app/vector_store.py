@@ -14,18 +14,29 @@ from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
 
-class FastEmbedEmbeddings(Embeddings):
-    """Lazy wrapper around fastembed so import/model-download cost is paid once."""
+FASTEMBED_CACHE_DIR = str(Path(__file__).resolve().parent.parent / ".fastembed_cache")
 
-    def __init__(self, model_name: str):
+
+class FastEmbedEmbeddings(Embeddings):
+    """Lazy wrapper around fastembed so import/model-download cost is paid once.
+
+    Explicit `cache_dir` outside /tmp -- fastembed defaults to a /tmp-based
+    cache, but some platforms (Render included) mount a fresh, empty /tmp at
+    container runtime, hiding whatever got baked into the image there during
+    the Docker build. The embedder loads lazily on first real query, so this
+    silently breaks only the first chat request, not startup/health checks.
+    """
+
+    def __init__(self, model_name: str, cache_dir: str = FASTEMBED_CACHE_DIR):
         self._model_name = model_name
+        self._cache_dir = cache_dir
         self._model = None
 
     def _load(self):
         if self._model is None:
             from fastembed import TextEmbedding
 
-            self._model = TextEmbedding(model_name=self._model_name)
+            self._model = TextEmbedding(model_name=self._model_name, cache_dir=self._cache_dir)
         return self._model
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
