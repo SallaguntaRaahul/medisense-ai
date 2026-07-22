@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
+import { motion } from "framer-motion";
 import { ArrowUp } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 
 interface ChatInputProps {
   value: string;
@@ -14,6 +14,8 @@ interface ChatInputProps {
 
 export function ChatInput({ value, onChange, onSubmit, disabled }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [focused, setFocused] = useState(false);
+  const canSend = !disabled && value.trim().length > 0;
 
   function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
     onChange(e.target.value);
@@ -27,30 +29,45 @@ export function ChatInput({ value, onChange, onSubmit, disabled }: ChatInputProp
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (value.trim() && !disabled) onSubmit();
+      if (canSend) onSubmit();
     }
   }
 
   return (
-    <div className="flex items-end gap-2 border-t bg-background p-3">
-      <Textarea
-        ref={textareaRef}
-        value={value}
-        onChange={handleInput}
-        onKeyDown={handleKeyDown}
-        placeholder="Describe your symptom or ask a health question..."
-        rows={1}
-        disabled={disabled}
-        className="max-h-40 min-h-10 flex-1 resize-none rounded-xl"
-      />
-      <Button
-        size="icon"
-        className="h-10 w-10 shrink-0 rounded-xl"
-        disabled={disabled || !value.trim()}
-        onClick={onSubmit}
+    <div className="border-t bg-background p-3">
+      <motion.div
+        animate={{
+          boxShadow: focused
+            ? "0 0 0 3px var(--color-ring), 0 4px 20px -4px color-mix(in oklch, var(--color-primary) 25%, transparent)"
+            : "0 0 0 0px transparent",
+        }}
+        transition={{ duration: 0.2 }}
+        className="flex items-end gap-2 rounded-xl"
       >
-        <ArrowUp className="h-4 w-4" />
-      </Button>
+        <Textarea
+          ref={textareaRef}
+          value={value}
+          onChange={handleInput}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder="Describe your symptom or ask a health question..."
+          rows={1}
+          disabled={disabled}
+          className="max-h-40 min-h-10 flex-1 resize-none rounded-xl focus-visible:ring-0"
+        />
+        <motion.button
+          type="button"
+          disabled={!canSend}
+          onClick={onSubmit}
+          whileHover={canSend ? { scale: 1.06 } : undefined}
+          whileTap={canSend ? { scale: 0.92 } : undefined}
+          animate={canSend ? { opacity: 1 } : { opacity: 0.5 }}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:cursor-not-allowed"
+        >
+          <ArrowUp className="h-4 w-4" />
+        </motion.button>
+      </motion.div>
     </div>
   );
 }
